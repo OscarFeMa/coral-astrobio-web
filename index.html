@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORAL ASTROBIO v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:#03050a;--deep:#070d1a;--nebula:#0a1628;--dim:#1a2a3a;--muted:#3a5a7a;
+  --bio:#00c896;--abio:#ff4d6d;--stellar:#4cc9f0;--tech:#ffd166;--coral:#ff7b54;
+  --text:#c8dff0;--bright:#e8f4ff;
+  --gb:rgba(0,200,150,.10);--ga:rgba(255,77,109,.10);--gs:rgba(76,201,240,.10);--gc:rgba(255,123,84,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--void);color:var(--text);font-family:'Space Mono',monospace;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:1;}
+canvas#sf{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:var(--void);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s;}
+#loader.out{opacity:0;pointer-events:none;}
+.ld-t{font-family:'Syne',sans-serif;font-size:.85rem;letter-spacing:.55em;color:var(--stellar);margin-bottom:1.8rem;}
+.ld-bar{width:240px;height:1px;background:var(--dim);}
+.ld-f{height:100%;background:var(--bio);width:0;transition:width .3s;}
+.ld-msg{font-size:.56rem;color:var(--muted);margin-top:.9rem;letter-spacing:.2em;height:.9rem;}
+.ld-badges{display:flex;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
+.ld-b{font-size:.5rem;letter-spacing:.12em;padding:.22rem .55rem;border:1px solid var(--dim);color:var(--muted);display:flex;align-items:center;gap:.3rem;}
+.ld-b .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);}
+.ld-b.ok{color:var(--bio);border-color:var(--bio);} .ld-b.ok .dot{background:var(--bio);}
+.ld-b.fail{color:var(--abio);border-color:var(--abio);} .ld-b.fail .dot{background:var(--abio);}
+.ld-b.warn{color:var(--tech);border-color:var(--tech);} .ld-b.warn .dot{background:var(--tech);}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;background:rgba(3,5,10,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--dim);}
+.nav-inner{max-width:1440px;margin:0 auto;padding:.9rem 2.5rem;display:flex;align-items:center;gap:1.5rem;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;letter-spacing:.3em;color:var(--stellar);margin-right:auto;}
+.logo span{color:var(--bio);}
+.nav-tabs{display:flex;gap:0;}
+.ntab{font-family:'Space Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1.1rem;border:none;background:transparent;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.ntab:hover{color:var(--text);}
+.ntab.on{color:var(--bright);border-bottom-color:var(--bio);}
+.nav-right{display:flex;align-items:center;gap:.8rem;}
+.npill{font-size:.5rem;letter-spacing:.12em;padding:.2rem .55rem;border:1px solid var(--dim);color:var(--muted);display:flex;align-items:center;gap:.28rem;}
+.npill.live{border-color:var(--bio);color:var(--bio);background:var(--gb);}
+.npill.warn{border-color:var(--tech);color:var(--tech);}
+.npill.off{border-color:var(--abio);color:var(--abio);}
+.npill-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:blink 1.8s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+/* PAGE */
+.page{max-width:1440px;margin:0 auto;padding:0 2.5rem 5rem;position:relative;z-index:5;}
+
+/* TABS */
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+
+/* HERO */
+.hero{padding:3rem 0 2rem;}
+.hero-eye{font-size:.56rem;letter-spacing:.4em;color:var(--bio);text-transform:uppercase;margin-bottom:1rem;}
+.hero-t{font-family:'DM Serif Display',serif;font-size:clamp(1.8rem,4vw,3.6rem);line-height:1.06;color:var(--bright);margin-bottom:.6rem;}
+.hero-t em{font-style:italic;color:var(--stellar);}
+.hero-s{font-size:.62rem;line-height:1.9;color:var(--muted);max-width:520px;margin-bottom:1.4rem;}
+.src-row{display:flex;flex-wrap:wrap;gap:.35rem;}
+.srcb{font-size:.48rem;letter-spacing:.12em;color:var(--muted);border:1px solid var(--dim);padding:.16rem .46rem;}
+.srcb.on{border-color:var(--bio);color:var(--bio);}
+
+/* API BAR */
+.api-bar{display:flex;align-items:center;gap:.8rem;padding:.75rem 1.1rem;background:var(--deep);border:1px solid var(--dim);margin-bottom:1.2rem;flex-wrap:wrap;}
+.api-lbl{font-size:.55rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
+.api-inp{flex:1;min-width:180px;font-family:'Space Mono',monospace;font-size:.6rem;background:var(--void);border:1px solid var(--dim);color:var(--text);padding:.48rem .75rem;outline:none;transition:border-color .2s;}
+.api-inp:focus{border-color:var(--stellar);}
+.api-st{font-size:.56rem;padding:.25rem .7rem;border:1px solid var(--dim);white-space:nowrap;}
+.api-st.ok{color:var(--bio);border-color:var(--bio);}
+.api-st.fail{color:var(--abio);border-color:var(--abio);}
+.api-st.chk{color:var(--tech);border-color:var(--tech);}
+
+/* SECTION HDR */
+.sec{padding:1rem 0 .7rem;border-top:1px solid var(--dim);margin-top:1.6rem;display:flex;align-items:center;gap:.75rem;}
+.sec-n{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--dim);line-height:1;}
+.sec-tag{font-size:.52rem;letter-spacing:.28em;text-transform:uppercase;margin-bottom:.18rem;}
+.sec-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;color:var(--bright);}
+
+/* PANEL */
+.panel{background:rgba(7,13,26,.96);border:1px solid var(--dim);padding:1.4rem;position:relative;overflow:hidden;transition:border-color .2s;}
+.panel:hover{border-color:var(--muted);}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.c-bio::before{background:var(--bio);} .c-abio::before{background:var(--abio);}
+.c-stellar::before{background:var(--stellar);} .c-tech::before{background:var(--tech);}
+.c-coral::before{background:var(--coral);} .c-muted::before{background:var(--muted);}
+.span2{grid-column:span 2;}
+.ptag{font-size:.52rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.65rem;}
+.c-bio .ptag{color:var(--bio);} .c-stellar .ptag{color:var(--stellar);}
+.c-tech .ptag{color:var(--tech);} .c-muted .ptag{color:var(--muted);}
+.c-coral .ptag{color:var(--coral);}
+.ptitle{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;color:var(--bright);margin-bottom:.3rem;}
+.pdesc{font-size:.56rem;line-height:1.7;color:var(--muted);margin-bottom:.9rem;}
+
+/* CATALOG TABLE */
+.ctrl-row{display:flex;gap:.7rem;align-items:center;margin-bottom:.9rem;flex-wrap:wrap;}
+.s-inp{flex:1;min-width:160px;font-family:'Space Mono',monospace;font-size:.6rem;background:var(--deep);border:1px solid var(--dim);color:var(--text);padding:.5rem .8rem;outline:none;transition:border-color .2s;}
+.s-inp:focus{border-color:var(--stellar);}
+.fbtn{font-family:'Space Mono',monospace;font-size:.56rem;background:transparent;border:1px solid var(--dim);color:var(--muted);padding:.5rem .8rem;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .2s;}
+.fbtn:hover,.fbtn.on{border-color:var(--stellar);color:var(--stellar);background:var(--gs);}
+.cat-stat{font-size:.52rem;color:var(--muted);white-space:nowrap;}
+table.pt{width:100%;border-collapse:collapse;}
+table.pt th{font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.5rem .8rem;border-bottom:1px solid var(--dim);text-align:left;cursor:pointer;white-space:nowrap;}
+table.pt th:hover{color:var(--stellar);}
+table.pt td{font-size:.58rem;padding:.6rem .8rem;border-bottom:1px solid rgba(26,42,58,.45);vertical-align:middle;}
+table.pt tr{cursor:pointer;transition:background .12s;}
+table.pt tr:hover{background:rgba(76,201,240,.04);}
+table.pt tr.sel{background:rgba(76,201,240,.07);}
+table.pt tr.sel td{color:var(--bright);}
+.pname-c{color:var(--bright);font-weight:700;}
+.pname-c small{display:block;color:var(--muted);font-weight:400;font-size:.5rem;margin-top:.08rem;}
+.jbadge{font-size:.46rem;background:rgba(0,200,150,.1);color:var(--bio);padding:.08rem .3rem;border:1px solid var(--bio);margin-left:.3rem;}
+.sbar{display:flex;align-items:center;gap:.35rem;}
+.str{flex:1;height:2px;background:var(--dim);}
+.sfb{height:100%;background:var(--bio);transition:width .5s;}
+.sn{font-size:.56rem;color:var(--text);min-width:2.2rem;text-align:right;}
+
+/* ANALYSIS GRID */
+.ag{display:grid;grid-template-columns:2fr 1fr;gap:1.1rem;margin-top:.9rem;}
+.ag3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.1rem;margin-top:.9rem;}
+
+/* ODDS */
+.odds-big{font-family:'DM Serif Display',serif;font-size:3rem;color:var(--bright);line-height:1;text-align:center;}
+.odds-big.bw{color:var(--bio);} .odds-big.aw{color:var(--abio);}
+.odds-sub{font-size:.52rem;color:var(--muted);text-align:center;margin-top:.25rem;letter-spacing:.08em;}
+.dual-bar{height:5px;background:var(--dim);position:relative;overflow:hidden;margin:.9rem 0 .35rem;}
+.db-bio{position:absolute;left:0;height:100%;background:linear-gradient(90deg,var(--bio),#00ff9d);transition:width .7s cubic-bezier(.4,0,.2,1);}
+.db-abio{position:absolute;right:0;height:100%;background:linear-gradient(270deg,var(--abio),#ff8fa3);transition:width .7s cubic-bezier(.4,0,.2,1);}
+.dual-lbls{display:flex;justify-content:space-between;font-size:.52rem;margin-bottom:.9rem;}
+.lbio{color:var(--bio);} .labio{color:var(--abio);}
+.verdict{font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;padding:.22rem .6rem;}
+.verdict.bio{background:var(--gb);color:var(--bio);border:1px solid var(--bio);}
+.verdict.abio{background:var(--ga);color:var(--abio);border:1px solid var(--abio);}
+.verdict.unc{background:rgba(255,209,102,.08);color:var(--tech);border:1px solid var(--tech);}
+
+/* EVIDENCE */
+.evgrid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;}
+.evi{}
+.evh{display:flex;justify-content:space-between;font-size:.54rem;margin-bottom:.25rem;}
+.evv{color:var(--bio);font-weight:700;} .evv.neg{color:var(--abio);}
+input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:var(--dim);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;background:var(--bio);border-radius:0;}
+input[type=range].neg::-webkit-slider-thumb{background:var(--abio);}
+
+/* ABIO MODELS */
+.arow{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid rgba(26,42,58,.4);}
+.arow:last-child{border-bottom:none;}
+.aname{font-size:.56rem;color:var(--text);flex:1;}
+.atrack{width:80px;height:2px;background:var(--dim);}
+.afill{height:100%;background:var(--abio);transition:width .7s;}
+.ascore{font-size:.58rem;color:var(--abio);min-width:2.2rem;text-align:right;}
+.ast{font-size:.46rem;letter-spacing:.1em;padding:.1rem .3rem;}
+.ast.dom{background:var(--ga);color:var(--abio);border:1px solid var(--abio);}
+.ast.sup{background:var(--dim);color:var(--muted);border:1px solid var(--dim);}
+
+/* TRANSITIONS */
+.titem{margin-bottom:.9rem;}
+.th2{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.25rem;}
+.tlbl{font-size:.58rem;color:var(--text);}
+.tscore{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--bright);}
+.ttrack{height:2px;background:var(--dim);}
+.tfill{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.t0 .tfill{background:#5a6d8a;} .t1 .tfill{background:#7b8fff;}
+.t2 .tfill{background:#a8e6cf;} .t3 .tfill{background:var(--tech);}
+.tdesc{font-size:.5rem;color:var(--muted);margin-top:.25rem;line-height:1.5;}
+.dom-box{background:var(--deep);border:1px solid var(--dim);padding:.75rem;text-align:center;margin-top:.9rem;}
+.dom-lbl{font-size:.5rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:.22rem;}
+.dom-val{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--bio);}
+.dom-name{font-size:.54rem;color:var(--text);margin-top:.18rem;}
+.fn-note{font-size:.54rem;color:var(--muted);margin-top:.7rem;line-height:1.6;}
+
+/* CAUSAL */
+canvas.sig{width:100%;height:110px;display:block;background:var(--deep);border:1px solid var(--dim);}
+.sig-leg{display:flex;gap:1rem;margin-top:.5rem;font-size:.54rem;flex-wrap:wrap;}
+.si{display:flex;align-items:center;gap:.3rem;color:var(--muted);}
+.sl{width:12px;height:2px;}
+.mrow{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-top:.7rem;}
+.mbox{background:var(--deep);border:1px solid var(--dim);padding:.65rem;text-align:center;}
+.mv{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--bright);display:block;}
+.mn{font-size:.48rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:.18rem;display:block;}
+
+/* ALERTS */
+.alert-i{display:flex;align-items:flex-start;gap:.7rem;padding:.75rem .85rem;background:var(--deep);border-left:2px solid var(--muted);margin-bottom:.5rem;animation:sli .3s ease;}
+@keyframes sli{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+.alert-i.hi{border-color:var(--bio);} .alert-i.md{border-color:var(--tech);}
+.alert-i.lo{border-color:var(--muted);} .alert-i.warn{border-color:var(--abio);}
+.ab{font-size:.48rem;letter-spacing:.14em;text-transform:uppercase;padding:.15rem .4rem;white-space:nowrap;flex-shrink:0;}
+.hi .ab{background:var(--gb);color:var(--bio);}
+.md .ab{background:rgba(255,209,102,.08);color:var(--tech);}
+.lo .ab{background:var(--dim);color:var(--muted);}
+.warn .ab{background:var(--ga);color:var(--abio);}
+.at{font-size:.58rem;line-height:1.6;color:var(--text);}
+.as{font-size:.5rem;color:var(--muted);margin-top:.15rem;}
+
+/* COMPARE CHART */
+.cmp-grid{display:grid;gap:.6rem;margin-top:.9rem;}
+.cmp-row{display:grid;grid-template-columns:9rem 1fr 6rem;align-items:center;gap:.8rem;padding:.6rem .8rem;background:var(--deep);border:1px solid var(--dim);cursor:pointer;transition:border-color .2s;}
+.cmp-row:hover{border-color:var(--muted);}
+.cmp-row.sel{border-color:var(--stellar);}
+.cmp-name{font-size:.6rem;color:var(--bright);font-weight:700;}
+.cmp-name small{display:block;color:var(--muted);font-weight:400;font-size:.5rem;margin-top:.06rem;}
+.cmp-bars{}
+.cmp-bar-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;}
+.cmp-blbl{font-size:.48rem;color:var(--muted);width:3rem;text-align:right;white-space:nowrap;}
+.cmp-track{flex:1;height:3px;background:var(--dim);}
+.cmp-fill{height:100%;transition:width .6s;}
+.cmp-fill.bio{background:var(--bio);}
+.cmp-fill.odds{background:var(--stellar);}
+.cmp-fill.ng{background:var(--tech);}
+.cmp-meta{text-align:right;}
+.cmp-verdict{font-size:.48rem;letter-spacing:.1em;padding:.15rem .4rem;margin-bottom:.3rem;display:inline-block;}
+.cmp-verdict.bio{background:var(--gb);color:var(--bio);border:1px solid var(--bio);}
+.cmp-verdict.abio{background:var(--ga);color:var(--abio);border:1px solid var(--abio);}
+.cmp-verdict.unc{background:rgba(255,209,102,.08);color:var(--tech);border:1px solid var(--tech);}
+.cmp-ts{font-size:.5rem;color:var(--stellar);}
+
+/* MEMORY PANEL */
+.mem-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+.ms-box{background:var(--deep);border:1px solid var(--dim);padding:.8rem;text-align:center;}
+.ms-val{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--bright);display:block;}
+.ms-lbl{font-size:.5rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:.15rem;display:block;}
+.mem-entries{margin-top:1rem;}
+.me-item{padding:.65rem .8rem;background:var(--deep);border:1px solid var(--dim);margin-bottom:.4rem;cursor:pointer;transition:border-color .2s;}
+.me-item:hover{border-color:var(--muted);}
+.me-t{font-size:.6rem;color:var(--bright);margin-bottom:.2rem;}
+.me-m{font-size:.54rem;color:var(--muted);line-height:1.5;}
+.me-ns{font-size:.48rem;letter-spacing:.12em;padding:.12rem .35rem;margin-left:.5rem;}
+.me-ns.astrobio{background:var(--gb);color:var(--bio);border:1px solid var(--bio);}
+.me-ns.coral{background:var(--gc);color:var(--coral);border:1px solid var(--coral);}
+
+/* SENS TABLE */
+.stbl{width:100%;border-collapse:collapse;margin-top:.7rem;}
+.stbl th{font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.45rem .65rem;border-bottom:1px solid var(--dim);text-align:left;}
+.stbl td{font-size:.58rem;padding:.5rem .65rem;border-bottom:1px solid rgba(26,42,58,.4);}
+.plist{margin-top:.7rem;}
+.pitem{display:flex;align-items:center;gap:.7rem;padding:.5rem .65rem;background:var(--deep);border:1px solid var(--dim);margin-bottom:.35rem;}
+.pi-n{font-size:.58rem;color:var(--text);flex:1;}
+.pi-d{font-family:'DM Serif Display',serif;font-size:.95rem;}
+.pi-dir{font-size:.47rem;letter-spacing:.12em;padding:.12rem .35rem;}
+.pi-dir.bio{background:var(--gb);color:var(--bio);border:1px solid var(--bio);}
+.pi-dir.abio{background:var(--ga);color:var(--abio);border:1px solid var(--abio);}
+
+/* SEARCH */
+.search-row{display:flex;gap:.7rem;margin-bottom:.9rem;}
+.search-inp{flex:1;font-family:'Space Mono',monospace;font-size:.6rem;background:var(--deep);border:1px solid var(--dim);color:var(--text);padding:.5rem .8rem;outline:none;transition:border-color .2s;}
+.search-inp:focus{border-color:var(--stellar);}
+
+/* BTNS */
+.btn{font-family:'Space Mono',monospace;font-size:.58rem;letter-spacing:.07em;padding:.55rem 1.2rem;border:1px solid var(--muted);background:transparent;color:var(--text);cursor:pointer;text-transform:uppercase;transition:all .2s;}
+.btn:hover{border-color:var(--bio);color:var(--bio);background:var(--gb);}
+.btn.p{border-color:var(--bio);color:var(--bio);background:var(--gb);}
+.btn.coral-btn{border-color:var(--coral);color:var(--coral);}
+.btn.coral-btn:hover{background:var(--gc);}
+.btn.pdf-btn{border-color:var(--tech);color:var(--tech);}
+.btn.pdf-btn:hover{background:rgba(255,209,102,.08);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;}
+
+.hd{width:100%;height:1px;background:var(--dim);margin:.9rem 0;}
+.spin{display:inline-block;width:9px;height:9px;border:1px solid var(--muted);border-top-color:var(--stellar);border-radius:50%;animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.psel-name{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--bright);margin-bottom:.18rem;}
+.psel-meta{font-size:.56rem;color:var(--muted);margin-bottom:.9rem;}
+.tag{font-size:.48rem;letter-spacing:.1em;padding:.12rem .35rem;border:1px solid var(--dim);color:var(--muted);}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;right:2rem;z-index:4000;font-family:'Space Mono',monospace;font-size:.6rem;padding:.7rem 1.2rem;background:var(--deep);border:1px solid var(--bio);color:var(--bio);animation:tin .25s ease;pointer-events:none;}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast.err{border-color:var(--abio);color:var(--abio);}
+
+@media(max-width:1000px){.ag,.ag3{grid-template-columns:1fr;} .span2{grid-column:span 1;} .evgrid,.mrow,.mem-stats{grid-template-columns:1fr 1fr;}}
+@media(max-width:680px){nav .nav-inner{padding:.8rem 1rem;} .nav-tabs{display:none;} .page{padding:0 1rem 3rem;} .mrow,.mem-stats{grid-template-columns:repeat(2,1fr);}}
+
+footer{position:relative;z-index:5;padding:1rem 2.5rem;border-top:1px solid var(--dim);display:flex;justify-content:space-between;font-size:.52rem;color:var(--muted);background:rgba(3,5,10,.9);flex-wrap:wrap;gap:.4rem;}
+</style>
+</head>
+<body>
+<canvas id="sf"></canvas>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-t">CORAL ASTROBIO v3.0</div>
+  <div class="ld-bar"><div class="ld-f" id="lf"></div></div>
+  <div class="ld-msg" id="lm">INICIANDO...</div>
+  <div class="ld-badges" id="lbadges">
+    <div class="ld-b" id="bApi"><span class="dot"></span>API BACKEND</div>
+    <div class="ld-b" id="bNasa"><span class="dot"></span>NASA ARCHIVE</div>
+    <div class="ld-b" id="bMem"><span class="dot"></span>MEMORIA CORAL</div>
+    <div class="ld-b" id="bEng"><span class="dot"></span>MOTOR BAYESIANO</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">CORAL <span>ASTRO</span>BIO <span style="font-size:.5rem;color:var(--muted);margin-left:.3rem;">v3.0</span></div>
+    <div class="nav-tabs">
+      <button class="ntab on" onclick="showTab('catalog',this)">CATÁLOGO</button>
+      <button class="ntab" onclick="showTab('analysis',this)">ANÁLISIS</button>
+      <button class="ntab" onclick="showTab('compare',this)">COMPARAR</button>
+      <button class="ntab" onclick="showTab('memory',this)">MEMORIA CORAL</button>
+    </div>
+    <div class="nav-right">
+      <div class="npill" id="pillApi"><span class="npill-dot"></span>API</div>
+      <div class="npill" id="pillMem"><span class="npill-dot"></span>SUPABASE</div>
+      <div class="npill live"><span class="npill-dot"></span>DBCE</div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+<!-- ====================== TAB: CATÁLOGO ====================== -->
+<div class="tab-pane on" id="tab-catalog">
+  <div class="hero">
+    <div class="hero-eye">◈ Detección Agnóstica de Vida Extraterrestre · Paradigma transicional</div>
+    <h1 class="hero-t">Buscamos <em>trayectorias</em>,<br>no eventos.</h1>
+    <p class="hero-s">Motor Bayesiano Competitivo · Clasificador PTSC · Analizador Causal · Memoria Coral persistente. Conectado a API Python y NASA Exoplanet Archive.</p>
+    <div class="src-row">
+      <span class="srcb" id="srcApi">API PYTHON v2.0</span>
+      <span class="srcb on">NASA EXOPLANET ARCHIVE</span>
+      <span class="srcb on">JWST CYCLE 1-3</span>
+      <span class="srcb" id="srcMem">SUPABASE MEMORIA</span>
+    </div>
+  </div>
+
+  <div class="api-bar">
+    <span class="api-lbl">API URL:</span>
+    <input class="api-inp" id="apiUrl" value="https://coral-astrobio.onrender.com">
+    <div class="api-st chk" id="apiStat">VERIFICANDO...</div>
+    <button class="btn" onclick="checkAPI()">⟳ RECONECTAR</button>
+  </div>
+
+  <div class="sec"><div class="sec-n">01</div>
+    <div><div class="sec-tag" style="color:var(--stellar)">◈ Selección de Objetivo</div>
+    <div class="sec-title">Catálogo · <span id="catCnt" style="color:var(--bio)">—</span> planetas</div></div>
+  </div>
+
+  <div class="ctrl-row">
+    <input class="s-inp" id="srch" placeholder="BUSCAR..." oninput="renderTable()">
+    <button class="fbtn on" onclick="setF('all',this)">TODOS</button>
+    <button class="fbtn" onclick="setF('jwst',this)">JWST</button>
+    <button class="fbtn" onclick="setF('hz',this)">ZONA HAB.</button>
+    <span class="cat-stat" id="catStat">—</span>
+    <button class="btn" style="margin-left:auto" onclick="loadPlanets()">⟳ REFRESH</button>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table class="pt" id="ptable">
+      <thead><tr>
+        <th onclick="sortT('name')">Planeta</th>
+        <th onclick="sortT('teq_k')">T_eq</th>
+        <th onclick="sortT('mass_earth')">Masa M⊕</th>
+        <th onclick="sortT('radius_earth')">Radio R⊕</th>
+        <th onclick="sortT('dist_pc')">Dist pc</th>
+        <th onclick="sortT('tsm')">TSM ↓</th>
+        <th>P(bio)</th>
+        <th>Odds</th>
+        <th>Transición</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="ptbody"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:2rem;"><span class="spin"></span> Conectando...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====================== TAB: ANÁLISIS ====================== -->
+<div class="tab-pane" id="tab-analysis">
+  <div class="sec" style="margin-top:1rem;"><div class="sec-n">02</div>
+    <div><div class="sec-tag" style="color:var(--bio)">◈ Análisis Integrado · Tres Capas</div>
+    <div class="sec-title">Motor Bayesiano · Clasificador PTSC · Analizador Causal</div></div>
+  </div>
+
+  <div class="ag">
+    <!-- CAPA 1 -->
+    <div class="panel c-bio">
+      <div class="ptag">◈ Capa 1 — DBCE · Dynamic Bayesian Consilience Engine</div>
+      <div class="psel-name" id="selN">Selecciona un planeta</div>
+      <div class="psel-meta" id="selM">Ve al catálogo y haz clic en "ANALIZAR"</div>
+
+      <div class="dual-bar"><div class="db-bio" id="dbBio" style="width:50%"></div><div class="db-abio" id="dbAbio" style="width:50%"></div></div>
+      <div class="dual-lbls"><span class="lbio" id="lblBio">● BIOLÓGICO 50.0%</span><span class="labio" id="lblAbio">ABIÓTICO 50.0% ●</span></div>
+
+      <div style="display:flex;gap:1.2rem;align-items:center;margin-bottom:.9rem;">
+        <div>
+          <div class="odds-big" id="oddsV">—</div>
+          <div class="odds-sub">ODDS RATIO BIO/ABIO</div>
+        </div>
+        <div style="flex:1;">
+          <div class="hd" style="margin:.3rem 0;"></div>
+          <div style="font-size:.54rem;color:var(--muted);line-height:1.8;">
+            IC 95%: [<span id="ciL">—</span>, <span id="ciH">—</span>]<br>
+            Consiliencia: <span id="consV" style="color:var(--bright)">—</span> ·
+            Modelos abióticos: <span id="abAct" style="color:var(--abio)">—</span> activos
+          </div>
+          <div class="hd" style="margin:.3rem 0;"></div>
+          <div class="verdict unc" id="verdB">SIN DATOS</div>
+        </div>
+      </div>
+
+      <div class="hd"></div>
+      <div style="font-size:.54rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem;">Evidencias Observacionales</div>
+      <div class="evgrid" id="evGrid"><div style="grid-column:span 2;color:var(--muted);font-size:.58rem;">—</div></div>
+
+      <div class="hd"></div>
+      <div style="font-size:.54rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem;">Modelos Abióticos Competidores</div>
+      <div id="abioL"></div>
+
+      <div class="btn-row">
+        <button class="btn p" onclick="runAnalysis()">▶ ANALIZAR</button>
+        <button class="btn" onclick="randomize()">⟳ ALEATORIZAR</button>
+        <button class="btn" onclick="resetEv()">↺ RESTAURAR</button>
+        <button class="btn pdf-btn" onclick="exportPDF()" id="btnPDF">⬇ PDF</button>
+        <button class="btn coral-btn" onclick="saveToMemory()" id="btnSave">◈ GUARDAR EN CORAL</button>
+      </div>
+    </div>
+
+    <!-- CAPA 2 -->
+    <div class="panel c-stellar">
+      <div class="ptag">◈ Capa 2 — PTSC</div>
+      <div class="ptitle">Clasificador de Transiciones</div>
+      <div class="pdesc">Gradiente de complejidad. Detecta mundos "en camino".</div>
+      <div id="transL"><div style="color:var(--muted);font-size:.58rem;">Sin datos.</div></div>
+      <div class="dom-box">
+        <div class="dom-lbl">Estado Dominante</div>
+        <div class="dom-val" id="domV">—</div>
+        <div class="dom-name" id="domN">—</div>
+      </div>
+      <div class="fn-note">FN reducidos: <strong id="fnR" style="color:var(--bio)">—</strong> vs O₂<br>
+      <span style="font-size:.5rem;">Ventana: <strong id="detW" style="color:var(--stellar)">—</strong> Ma</span></div>
+    </div>
+  </div>
+
+  <!-- CAPA 3 -->
+  <div class="panel c-tech" style="margin-top:1.1rem;">
+    <div class="ptag">◈ Capa 3 — Causal Network Analyzer · Series Temporales</div>
+    <div class="ptitle">Firmas Dinámicas No Geológicas</div>
+    <div class="pdesc">Desfase causal superficie→gas. Vida como régimen dinámico, no sustancia.</div>
+    <canvas class="sig" id="sigC"></canvas>
+    <div class="sig-leg">
+      <div class="si"><div class="sl" style="background:var(--bio)"></div>Reflectancia superficial</div>
+      <div class="si"><div class="sl" style="background:var(--stellar)"></div>Gas atmosférico</div>
+      <div class="si"><div class="sl" style="background:var(--tech);opacity:.5"></div>Desfase causal</div>
+    </div>
+    <div class="mrow" id="mrow">
+      <div class="mbox"><span class="mv">—</span><span class="mn">Desfase Causal</span></div>
+      <div class="mbox"><span class="mv">—</span><span class="mn">Sincronía Fase</span></div>
+      <div class="mbox"><span class="mv">—</span><span class="mn">Entropía Info.</span></div>
+      <div class="mbox"><span class="mv">—</span><span class="mn">Dim. Efectiva</span></div>
+    </div>
+  </div>
+
+  <!-- SENSIBILIDAD + PRIORIDADES -->
+  <div class="ag3" style="margin-top:1.1rem;">
+    <div class="panel c-tech">
+      <div class="ptag">◈ Sensibilidad</div>
+      <div class="ptitle">Robustez ante Incertidumbre</div>
+      <button class="btn p" id="btnSens" onclick="loadSens()" style="margin-bottom:.7rem;">▶ CALCULAR</button>
+      <div id="sensC"><div style="color:var(--muted);font-size:.58rem;">Presiona calcular.</div></div>
+    </div>
+    <div class="panel c-muted">
+      <div class="ptag">◈ Prioridades</div>
+      <div class="ptitle">¿Qué Observar Primero?</div>
+      <div class="plist" id="prioL"><div style="color:var(--muted);font-size:.58rem;">Sin datos.</div></div>
+    </div>
+    <div class="panel c-stellar">
+      <div class="ptag">◈ Alertas</div>
+      <div class="ptitle">Sistema de Detección</div>
+      <div id="alertsB"><div style="color:var(--muted);font-size:.58rem;">Sin alertas activas.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== TAB: COMPARAR ====================== -->
+<div class="tab-pane" id="tab-compare">
+  <div class="sec" style="margin-top:1rem;"><div class="sec-n">03</div>
+    <div><div class="sec-tag" style="color:var(--tech)">◈ Análisis Comparativo</div>
+    <div class="sec-title">Dashboard Multi-Planeta</div></div>
+  </div>
+
+  <div class="panel c-tech" style="margin-bottom:1.1rem;">
+    <div class="ptag">◈ Selección de Planetas a Comparar</div>
+    <div style="display:flex;gap:.7rem;flex-wrap:wrap;align-items:center;">
+      <input class="s-inp" id="cmpSearch" placeholder="AÑADIR PLANETA..." style="max-width:280px;">
+      <button class="btn p" onclick="addToCmp()">+ AÑADIR</button>
+      <button class="btn" onclick="loadDefaultCmp()">⟳ TOP 6 TSM</button>
+      <button class="btn" onclick="clearCmp()">✕ LIMPIAR</button>
+      <span style="font-size:.54rem;color:var(--muted);" id="cmpStat">0 planetas seleccionados</span>
+    </div>
+    <div id="cmpTags" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.7rem;"></div>
+  </div>
+
+  <div id="cmpGrid" class="cmp-grid"><div style="color:var(--muted);font-size:.6rem;padding:1rem 0;">Selecciona planetas para comparar.</div></div>
+
+  <!-- RADAR CHART -->
+  <div class="panel c-stellar" style="margin-top:1.1rem;">
+    <div class="ptag">◈ Perfil Comparativo · Evidencias</div>
+    <div class="ptitle">Radar de Biofirmas</div>
+    <canvas id="radarC" style="max-height:320px;display:block;margin:0 auto;"></canvas>
+  </div>
+</div>
+
+<!-- ====================== TAB: MEMORIA CORAL ====================== -->
+<div class="tab-pane" id="tab-memory">
+  <div class="sec" style="margin-top:1rem;"><div class="sec-n">04</div>
+    <div><div class="sec-tag" style="color:var(--coral)">◈ Memoria Persistente</div>
+    <div class="sec-title">Proyecto Coral · Separación AstroBio / Coral</div></div>
+  </div>
+
+  <div class="ag3">
+    <div class="ms-box"><span class="ms-val" id="msTotal">—</span><span class="ms-lbl">Total entradas</span></div>
+    <div class="ms-box" style="border-color:var(--bio);"><span class="ms-val" id="msAstro" style="color:var(--bio)">—</span><span class="ms-lbl" style="color:var(--bio)">Namespace ASTROBIO</span></div>
+    <div class="ms-box" style="border-color:var(--coral);"><span class="ms-val" id="msCoral" style="color:var(--coral)">—</span><span class="ms-lbl" style="color:var(--coral)">Namespace CORAL</span></div>
+  </div>
+
+  <div class="ag" style="margin-top:1.1rem;">
+    <div class="panel c-coral">
+      <div class="ptag">◈ Entradas AstroBio</div>
+      <div class="ptitle">Análisis de Exoplanetas Guardados</div>
+      <div class="search-row">
+        <input class="search-inp" id="memSearch" placeholder="BUSCAR EN MEMORIA...">
+        <button class="btn p" onclick="searchMem()">BUSCAR</button>
+        <select style="font-family:'Space Mono',monospace;font-size:.58rem;background:var(--deep);border:1px solid var(--dim);color:var(--text);padding:.45rem .7rem;" onchange="loadMemEntries(this.value)" id="nsSelect">
+          <option value="astrobio">ASTROBIO</option>
+          <option value="coral">CORAL</option>
+        </select>
+      </div>
+      <div id="memList"><div style="color:var(--muted);font-size:.58rem;"><span class="spin"></span> Cargando...</div></div>
+    </div>
+
+    <div>
+      <!-- SAVE NOTE -->
+      <div class="panel c-stellar" style="margin-bottom:1.1rem;">
+        <div class="ptag">◈ Guardar Nota Coral</div>
+        <div class="ptitle">Añadir a Memoria General</div>
+        <input class="s-inp" id="noteTitle" placeholder="TÍTULO..." style="width:100%;margin-bottom:.5rem;">
+        <textarea id="noteContent" placeholder="Contenido de la nota..." style="width:100%;height:80px;font-family:'Space Mono',monospace;font-size:.58rem;background:var(--deep);border:1px solid var(--dim);color:var(--text);padding:.5rem .7rem;outline:none;resize:vertical;"></textarea>
+        <div class="btn-row">
+          <button class="btn p" onclick="saveCoral()">◈ GUARDAR EN CORAL</button>
+        </div>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="panel c-muted">
+        <div class="ptag">◈ Configuración Supabase</div>
+        <div class="ptitle">Separación de Namespaces</div>
+        <div style="font-size:.56rem;line-height:1.8;color:var(--muted);">
+          Tabla: <span id="cfgTable" style="color:var(--text)">—</span><br>
+          Campo namespace: <span id="cfgNsField" style="color:var(--text)">—</span><br>
+          Valor coral: <span id="cfgCoralVal" style="color:var(--coral)">—</span><br>
+          Valor astrobio: <span id="cfgAstroVal" style="color:var(--bio)">—</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="loadMemStats()">⟳ ACTUALIZAR STATS</button>
+        </div>
+        <div style="margin-top:.8rem;font-size:.52rem;color:var(--muted);line-height:1.6;">
+          Para cambiar el esquema, edita SCHEMA_CONFIG en<br>
+          <span style="color:var(--stellar)">memory/supabase_client.py</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<footer>
+  <div>CORAL ASTROBIO v3.0 · Proyecto Coral Multi-IA 2026 · Paradigma Agnóstico</div>
+  <div id="ftd">NASA Archive · JWST MAST · API Python Backend · Supabase</div>
+</footer>
+
+<script>
+// =============================================================
+// STARFIELD
+// =============================================================
+(()=>{
+  const c=document.getElementById('sf'),cx=c.getContext('2d');
+  const rz=()=>{c.width=innerWidth;c.height=innerHeight;};rz();
+  addEventListener('resize',rz);
+  const st=Array.from({length:260},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    r:Math.random()*1.1,a:Math.random()*.5+.1,sp:Math.random()*.012+.002,ph:Math.random()*Math.PI*2}));
+  function draw(t){
+    cx.clearRect(0,0,c.width,c.height);
+    st.forEach(s=>{
+      const a=s.a*(.6+.4*Math.sin(t*s.sp+s.ph));
+      cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      cx.fillStyle=`rgba(200,223,240,${a})`;cx.fill();
+    });
+    requestAnimationFrame(t2=>draw(t2*.001));
+  }
+  draw(0);
+})();
+
+// =============================================================
+// STATE
+// =============================================================
+let API='https://coral-astrobio.onrender.com';
+let planets=[];
+let sel=null, analysis=null, evValues={};
+let filterMode='all', sortKey='tsm', sortDir=-1;
+let cmpNames=[], cmpData=[];
+let sigAnim=null, sigPhase=0;
+const EVDEFS={
+  o2proxy:{l:'O₃ proxy O₂',neg:false},ch4:{l:'CH₄ desequilibrio',neg:false},
+  h2o:{l:'H₂O vapor',neg:false},dms:{l:'DMS tentativo',neg:false},
+  seasonal:{l:'Variación estacional',neg:false},surface:{l:'Borde rojo',neg:false},
+  volcanic:{l:'Actividad volcánica',neg:true},techno:{l:'Tecnosignatura CFC',neg:false}
+};
+
+// =============================================================
+// TABS
+// =============================================================
+function showTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  if(btn) btn.classList.add('on');
+  if(id==='compare' && cmpData.length===0) loadDefaultCmp();
+  if(id==='memory') loadMemStats();
+}
+
+// =============================================================
+// API
+// =============================================================
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function apiGet(path){
+  const r=await fetch(API+path,{signal:AbortSignal.timeout(9000)});
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+async function apiPost(path,body){
+  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function checkAPI(){
+  const st=document.getElementById('apiStat'), p=document.getElementById('pillApi');
+  st.textContent='VERIFICANDO...'; st.className='api-st chk';
+  API=document.getElementById('apiUrl').value.trim().replace(/\/$/,'');
+  try{
+    const s=await apiGet('/api/status');
+    st.textContent=`ONLINE · ${s.planet_count}p · v${s.version}`;
+    st.className='api-st ok';
+    p.className='npill live';
+    document.getElementById('srcApi').classList.add('on');
+    return true;
+  }catch(e){
+    st.textContent='OFFLINE';
+    st.className='api-st fail';
+    p.className='npill off';
+    return false;
+  }
+}
+
+// =============================================================
+// CATALOG
+// =============================================================
+async function loadPlanets(){
+  document.getElementById('ptbody').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:1.5rem;"><span class="spin"></span></td></tr>`;
+  try{
+    const d=await apiGet('/api/planets');
+    planets=d.planets;
+    document.getElementById('catCnt').textContent=planets.length;
+    renderTable();
+  }catch(e){
+    document.getElementById('ptbody').innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--abio);padding:1.5rem;">Error API. Verifica ${API}</td></tr>`;
+  }
+}
+
+function getFiltered(){
+  let l=[...planets];
+  const s=(document.getElementById('srch').value||'').toLowerCase();
+  if(filterMode==='jwst') l=l.filter(p=>p.jwst);
+  if(filterMode==='hz') l=l.filter(p=>p.hz);
+  if(s) l=l.filter(p=>p.name.toLowerCase().includes(s)||(p.host||'').toLowerCase().includes(s));
+  l.sort((a,b)=>{const va=a[sortKey]??-Infinity,vb=b[sortKey]??-Infinity;return(va<vb?-1:va>vb?1:0)*sortDir;});
+  return l;
+}
+
+function renderTable(){
+  const list=getFiltered();
+  document.getElementById('catStat').textContent=`${list.length}/${planets.length}`;
+  document.getElementById('ptbody').innerHTML=list.map(p=>`
+    <tr class="${sel&&p.name===sel.name?'sel':''}" onclick="selectPlanet('${esc(p.name)}')">
+      <td class="pname-c">${p.name}${p.jwst?'<span class="jbadge">JWST</span>':''}
+        <small>${p.host||'—'} · ${p.type||'—'}</small></td>
+      <td style="color:${p.teq_k>180&&p.teq_k<330?'var(--bio)':'var(--text)'}">${p.teq_k??'—'}</td>
+      <td>${p.mass_earth??'—'}</td><td>${p.radius_earth??'—'}</td><td>${p.dist_pc??'—'}</td>
+      <td style="color:var(--stellar);font-weight:700">${p.tsm??'—'}</td>
+      <td><div class="sbar"><div class="str"><div class="sfb" style="width:${(p.bio_probability||0)*100}%"></div></div>
+          <span class="sn">${(p.bio_probability||0).toFixed(2)}</span></div></td>
+      <td style="color:${(p.odds_ratio||0)>1?'var(--bio)':'var(--muted)'}">${(p.odds_ratio||0).toFixed(2)}</td>
+      <td style="font-size:.52rem;color:var(--stellar)">${p.dominant_transition||'—'}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn" style="padding:.3rem .55rem;font-size:.5rem;" onclick="event.stopPropagation();selectAndGo('${esc(p.name)}')">ANALIZAR</button>
+        <button class="btn pdf-btn" style="padding:.3rem .55rem;font-size:.5rem;margin-left:.3rem;" onclick="event.stopPropagation();dlPDF('${esc(p.name)}')">PDF</button>
+      </td>
+    </tr>`).join('');
+}
+
+function sortT(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}renderTable();}
+function setF(m,b){filterMode=m;document.querySelectorAll('.fbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderTable();}
+const esc=s=>s.replace(/'/g,"\\'");
+
+// =============================================================
+// SELECT & ANALYZE
+// =============================================================
+async function selectPlanet(name){
+  try{
+    const data=await apiGet(`/api/planet/${encodeURIComponent(name)}`);
+    analysis=data; sel=data.planet;
+    evValues={...data.planet.evidences};
+    renderAnalysis(data);
+    renderTable();
+  }catch(e){ toast('Error cargando análisis',true); }
+}
+
+async function selectAndGo(name){
+  await selectPlanet(name);
+  showTab('analysis', document.querySelector('.ntab:nth-child(2)'));
+}
+
+function renderAnalysis(data){
+  const {planet,bayesian,transition,causal,timeseries}=data;
+  document.getElementById('selN').textContent=planet.name;
+  document.getElementById('selM').textContent=`${planet.type||'—'} · ${planet.spectype||'—'} · ${planet.dist_pc??'—'} pc · T_eq: ${planet.teq_k??'—'} K · TSM: ${planet.tsm??'—'}`;
+
+  const bp=bayesian.bio_probability, ap=bayesian.abio_probability;
+  document.getElementById('dbBio').style.width=(bp*100)+'%';
+  document.getElementById('dbAbio').style.width=(ap*100)+'%';
+  document.getElementById('lblBio').textContent=`● BIOLÓGICO ${(bp*100).toFixed(1)}%`;
+  document.getElementById('lblAbio').textContent=`ABIÓTICO ${(ap*100).toFixed(1)}% ●`;
+
+  const oe=document.getElementById('oddsV');
+  oe.textContent=bayesian.odds_ratio<.01?'<0.01':bayesian.odds_ratio>99?'>99':bayesian.odds_ratio.toFixed(2);
+  oe.className='odds-big'+(bp>.65?' bw':bp<.38?' aw':'');
+  document.getElementById('ciL').textContent=bayesian.ci_95_low.toFixed(2);
+  document.getElementById('ciH').textContent=bayesian.ci_95_high.toFixed(2);
+  document.getElementById('consV').textContent=bayesian.consilience_score.toFixed(2);
+  document.getElementById('abAct').textContent=bayesian.active_abio_models.filter(m=>m.dominant).length;
+
+  const vd=document.getElementById('verdB');
+  const c=bayesian.consilience_score;
+  if(c>.68){vd.textContent='BIOLÓGICO PROBABLE';vd.className='verdict bio';}
+  else if(c<.35){vd.textContent='ABIÓTICO PROBABLE';vd.className='verdict abio';}
+  else{vd.textContent='INCIERTO';vd.className='verdict unc';}
+
+  renderEvidences();
+
+  document.getElementById('abioL').innerHTML=bayesian.active_abio_models.map(m=>`
+    <div class="arow"><span class="aname">${m.name}</span>
+    <div class="atrack"><div class="afill" style="width:${m.score*100}%"></div></div>
+    <span class="ascore">${m.score.toFixed(2)}</span>
+    <span class="ast ${m.dominant?'dom':'sup'}">${m.dominant?'ACTIVO':'SUPRIMIDO'}</span></div>`).join('');
+
+  const tNames=['T0→T1','T1→T2','T2→T3','T3→T4'];
+  const tFullNames=['Química → Prebiótica','Prebiótica → Metabolismo','Metabolismo → Ecosistema','Ecosistema → Tecnosfera'];
+  document.getElementById('transL').innerHTML=transition.scores.map((s,i)=>`
+    <div class="titem t${i}"><div class="th2">
+      <span class="tlbl">${tNames[i]} — ${transition.definitions[i].name}</span>
+      <span class="tscore">${s.toFixed(2)}</span></div>
+    <div class="ttrack"><div class="tfill" style="width:${s*100}%"></div></div>
+    <div class="tdesc">${transition.definitions[i].description}</div></div>`).join('');
+
+  document.getElementById('domV').textContent=`T${transition.dominant_idx}.${Math.round(transition.dominant_score*10)}`;
+  document.getElementById('domN').textContent=tFullNames[transition.dominant_idx].toUpperCase();
+  document.getElementById('fnR').textContent=transition.false_negative_reduction.toFixed(1)+'%';
+  document.getElementById('detW').textContent=Math.round(transition.detectability_window_ma);
+
+  document.getElementById('mrow').innerHTML=[
+    {v:causal.causal_lag_days.toFixed(0)+'d',n:'Desfase Causal'},
+    {v:causal.phase_synchrony.toFixed(2),n:'Sincronía Fase'},
+    {v:causal.info_entropy.toFixed(2),n:'Entropía Info.'},
+    {v:causal.effective_dim.toFixed(1),n:'Dim. Efectiva'},
+  ].map(m=>`<div class="mbox"><span class="mv">${m.v}</span><span class="mn">${m.n}</span></div>`).join('');
+
+  drawSignal(timeseries, causal);
+  renderAlerts(planet, bayesian, transition, causal);
+  renderPriorities(bayesian);
+}
+
+// EVIDENCES
+function renderEvidences(){
+  if(!analysis) return;
+  document.getElementById('evGrid').innerHTML=Object.entries(EVDEFS).map(([k,d])=>`
+    <div class="evi"><div class="evh">
+      <span>${d.l}</span>
+      <span class="evv ${d.neg?'neg':''}" id="ev_${k}">${(evValues[k]??0).toFixed(2)}</span></div>
+    <input type="range" class="${d.neg?'neg':''}" min="0" max="1" step="0.01"
+      value="${evValues[k]??0}" oninput="onEv('${k}',this.value)"></div>`).join('');
+}
+
+async function onEv(k,v){
+  evValues[k]=parseFloat(v);
+  document.getElementById(`ev_${k}`).textContent=parseFloat(v).toFixed(2);
+  if(!sel) return;
+  try{
+    const d=await apiPost('/api/analyze',{planet_name:sel.name,evidences:evValues});
+    analysis={...analysis,...d,planet:{...analysis.planet,evidences:evValues}};
+    renderAnalysis(analysis);
+  }catch(e){}
+}
+
+async function runAnalysis(){
+  if(!sel) return;
+  evValues={...sel.evidences};
+  renderEvidences();
+  try{
+    const d=await apiPost('/api/analyze',{planet_name:sel.name,evidences:evValues});
+    analysis={...analysis,...d};
+    renderAnalysis(analysis);
+  }catch(e){ toast('Error en análisis',true); }
+}
+
+function randomize(){
+  Object.keys(evValues).forEach(k=>{
+    if(k!=='causal_lag') evValues[k]=parseFloat((Math.random()*.85).toFixed(2));
+    const inp=document.querySelector(`input[oninput*="'${k}'"]`);
+    if(inp) inp.value=evValues[k];
+    const vEl=document.getElementById(`ev_${k}`);
+    if(vEl) vEl.textContent=evValues[k].toFixed(2);
+  });
+  if(sel) onEv('o2proxy',evValues.o2proxy);
+}
+
+function resetEv(){if(!sel) return; evValues={...sel.evidences}; renderEvidences(); runAnalysis();}
+
+// =============================================================
+// PDF EXPORT
+// =============================================================
+async function exportPDF(){
+  if(!sel){toast('Selecciona un planeta primero',true);return;}
+  toast(`Generando PDF de ${sel.name}...`);
+  const url=`${API}/api/export/pdf/${encodeURIComponent(sel.name)}`;
+  const a=document.createElement('a');a.href=url;a.download=`astrobio_${sel.name.replace(/ /g,'_')}.pdf`;
+  a.click();
+}
+
+async function dlPDF(name){
+  toast(`Generando PDF de ${name}...`);
+  const url=`${API}/api/export/pdf/${encodeURIComponent(name)}`;
+  const a=document.createElement('a');a.href=url;a.download=`astrobio_${name.replace(/ /g,'_')}.pdf`;
+  a.click();
+}
+
+// =============================================================
+// SIGNAL CANVAS
+// =============================================================
+function drawSignal(ts,causal){
+  const canvas=document.getElementById('sigC');
+  if(!canvas) return;
+  const cx2=canvas.getContext('2d');
+  canvas.width=canvas.offsetWidth; canvas.height=110;
+  if(sigAnim) cancelAnimationFrame(sigAnim);
+  const s=ts.surface, g=ts.gas;
+  const sMin=Math.min(...s),sMax=Math.max(...s),gMin=Math.min(...g),gMax=Math.max(...g);
+  function draw(ph){
+    const w=canvas.width,h=canvas.height;
+    cx2.clearRect(0,0,w,h);
+    cx2.strokeStyle='rgba(26,42,58,.5)';cx2.lineWidth=.35;
+    for(let x=0;x<w;x+=50){cx2.beginPath();cx2.moveTo(x,0);cx2.lineTo(x,h);cx2.stroke();}
+    for(let y=0;y<h;y+=28){cx2.beginPath();cx2.moveTo(0,y);cx2.lineTo(w,y);cx2.stroke();}
+    const lagF=causal.causal_lag_fraction||.25;
+    cx2.beginPath();cx2.strokeStyle='#00c896';cx2.lineWidth=1.5;
+    for(let i=0;i<s.length;i++){
+      const x=(i/s.length)*w;
+      const n=(s[i]-sMin)/(sMax-sMin+1e-10);
+      const y=h*.44+Math.sin((i/s.length)*Math.PI*4+ph*.8)*h*.2*(n*.5+.5);
+      i===0?cx2.moveTo(x,y):cx2.lineTo(x,y);
+    }cx2.stroke();
+    cx2.beginPath();cx2.strokeStyle='#4cc9f0';cx2.lineWidth=1.5;
+    for(let i=0;i<g.length;i++){
+      const x=(i/g.length)*w;
+      const n=(g[i]-gMin)/(gMax-gMin+1e-10);
+      const y=h*.56+Math.sin((i/g.length)*Math.PI*4+ph*.8-lagF*Math.PI*2)*h*.18*(n*.5+.5);
+      i===0?cx2.moveTo(x,y):cx2.lineTo(x,y);
+    }cx2.stroke();
+    const lx=Math.min(w*.82,lagF*w*.5+12);
+    cx2.beginPath();cx2.strokeStyle='rgba(255,209,102,.35)';cx2.lineWidth=1;
+    cx2.setLineDash([3,4]);cx2.moveTo(lx,4);cx2.lineTo(lx,h-4);cx2.stroke();cx2.setLineDash([]);
+    sigPhase=ph+.011;
+    sigAnim=requestAnimationFrame(()=>draw(sigPhase));
+  }
+  draw(sigPhase);
+}
+
+// =============================================================
+// SENSITIVITY
+// =============================================================
+async function loadSens(){
+  if(!sel){toast('Selecciona un planeta',true);return;}
+  document.getElementById('sensC').innerHTML='<span class="spin"></span>';
+  document.getElementById('btnSens').disabled=true;
+  try{
+    const d=await apiGet(`/api/sensitivity/${encodeURIComponent(sel.name)}`);
+    const rows=Object.entries(d.sensitivity_by_noise).map(([n,s])=>`
+      <tr><td>σ=${n}</td>
+      <td style="color:var(--bright)">${s.mean_odds.toFixed(3)}±${s.std_odds.toFixed(3)}</td>
+      <td style="color:var(--stellar)">[${s.p5.toFixed(2)},${s.p95.toFixed(2)}]</td>
+      <td style="color:${s.prob_bio_robust>.5?'var(--bio)':'var(--abio)'}">${(s.prob_bio_robust*100).toFixed(0)}%</td>
+      </tr>`).join('');
+    document.getElementById('sensC').innerHTML=`
+      <table class="stbl"><thead><tr><th>Ruido</th><th>Odds</th><th>IC90%</th><th>P(bio)</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  }catch(e){document.getElementById('sensC').innerHTML=`<span style="color:var(--abio)">${e.message}</span>`;}
+  finally{document.getElementById('btnSens').disabled=false;}
+}
+
+function renderPriorities(bayesian){
+  const c=Object.entries(bayesian.evidence_contributions)
+    .map(([k,v])=>({k,v,l:EVDEFS[k]?.l||k}))
+    .sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,5);
+  document.getElementById('prioL').innerHTML=c.map(x=>`
+    <div class="pitem"><span class="pi-n">${x.l}</span>
+    <span class="pi-d" style="color:${x.v>0?'var(--bio)':'var(--abio)'}">${x.v>0?'+':''}${x.v.toFixed(3)}</span>
+    <span class="pi-dir ${x.v>0?'bio':'abio'}">${x.v>0?'↑BIO':'↑ABIO'}</span></div>`).join('');
+}
+
+// =============================================================
+// ALERTS
+// =============================================================
+function renderAlerts(planet,bayes,trans,causal){
+  const alerts=[];
+  if(planet.jwst) alerts.push({l:'md',b:'JWST',t:`${planet.name}: observaciones activas JWST.`,s:'MAST/STScI'});
+  if((planet.evidences?.dms||0)>.22) alerts.push({l:'warn',b:'ALERTA DMS',t:`DMS tentativo ${((planet.evidences?.dms||0)*100).toFixed(0)}%. Requiere 5σ. Precedente K2-18b.`,s:'DBCE'});
+  if(bayes.paradigm_shift) alerts.push({l:'hi',b:'CAMBIO PARADIGMA',t:`Odds ${bayes.odds_ratio.toFixed(2)} > 2.5. Solicitar tiempo JWST.`,s:'DBCE Engine'});
+  if(Math.max(...trans.scores)>.60){
+    const i=trans.scores.indexOf(Math.max(...trans.scores));
+    alerts.push({l:'hi',b:'TRANSICIÓN',t:`PTSC: ${trans.definitions[i].name} (p=${Math.max(...trans.scores).toFixed(2)}).`,s:'PTSC v1.0'});}
+  if((planet.evidences?.volcanic||0)>.45) alerts.push({l:'warn',b:'FALSO POSITIVO',t:`Vulcanismo alto. Modelo abiótico dominante activo.`,s:'DBCE'});
+  if((planet.evidences?.techno||0)>.1) alerts.push({l:'hi',b:'TECNOSIGNATURA',t:`CFC ${((planet.evidences?.techno||0)*100).toFixed(0)}%. Civilización activa.`,s:'DBCE'});
+  if(!alerts.length) alerts.push({l:'lo',b:'ESPERA',t:`Monitoreo activo. Sin umbrales.`,s:'Sistema'});
+  document.getElementById('alertsB').innerHTML=alerts.map(a=>`
+    <div class="alert-i ${a.l}"><span class="ab">${a.b}</span>
+    <div><div class="at">${a.t}</div><div class="as">⟐ ${a.s}</div></div></div>`).join('');
+}
+
+// =============================================================
+// COMPARE
+// =============================================================
+async function loadDefaultCmp(){
+  cmpNames=[];
+  try{
+    const d=await apiGet('/api/compare');
+    cmpData=d.comparison;
+    cmpNames=cmpData.map(p=>p.name);
+    renderCmpTags();
+    renderCmpGrid();
+    renderRadar();
+  }catch(e){toast('Error cargando comparación',true);}
+}
+
+async function addToCmp(){
+  const v=document.getElementById('cmpSearch').value.trim();
+  if(!v) return;
+  if(cmpNames.includes(v)){toast('Ya está en la comparación');return;}
+  try{
+    const enc=cmpNames.concat(v).map(n=>encodeURIComponent(n)).join(',');
+    const d=await apiGet(`/api/compare?names=${enc}`);
+    cmpData=d.comparison; cmpNames=cmpData.map(p=>p.name);
+    renderCmpTags(); renderCmpGrid(); renderRadar();
+    document.getElementById('cmpSearch').value='';
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+function clearCmp(){cmpData=[];cmpNames=[];renderCmpTags();renderCmpGrid();}
+
+function renderCmpTags(){
+  document.getElementById('cmpStat').textContent=`${cmpNames.length} planetas`;
+  document.getElementById('cmpTags').innerHTML=cmpNames.map(n=>`
+    <span class="tag" style="cursor:pointer;color:var(--stellar);border-color:var(--stellar);">
+      ${n} <span onclick="removeCmp('${esc(n)}')" style="cursor:pointer;color:var(--abio);margin-left:.3rem;">✕</span>
+    </span>`).join('');
+}
+
+async function removeCmp(name){
+  cmpNames=cmpNames.filter(n=>n!==name);
+  if(cmpNames.length===0){clearCmp();return;}
+  const d=await apiGet(`/api/compare?names=${cmpNames.map(encodeURIComponent).join(',')}`);
+  cmpData=d.comparison; cmpNames=cmpData.map(p=>p.name);
+  renderCmpTags(); renderCmpGrid(); renderRadar();
+}
+
+function renderCmpGrid(){
+  if(!cmpData.length){
+    document.getElementById('cmpGrid').innerHTML='<div style="color:var(--muted);font-size:.6rem;padding:1rem 0;">Sin datos.</div>';
+    return;
+  }
+  const maxBio=Math.max(...cmpData.map(p=>p.bio_probability),.01);
+  document.getElementById('cmpGrid').innerHTML=cmpData.map(p=>{
+    const vc=p.bio_probability>.5?'bio':p.bio_probability<.25?'abio':'unc';
+    const vl={'bio':'BIO PROBABLE','abio':'ABIO PROBABLE','unc':'INCIERTO'}[vc];
+    return `<div class="cmp-row ${sel&&p.name===sel.name?'sel':''}" onclick="selectAndGo('${esc(p.name)}')">
+      <div class="cmp-name">${p.name}${p.jwst?'<span class="jbadge" style="font-size:.42rem;">JWST</span>':''}
+        <small>${p.type||'—'} · ${p.dist_pc??'—'}pc</small></div>
+      <div class="cmp-bars">
+        <div class="cmp-bar-row"><span class="cmp-blbl">P(bio)</span>
+          <div class="cmp-track"><div class="cmp-fill bio" style="width:${p.bio_probability*100}%"></div></div>
+          <span style="font-size:.52rem;color:var(--bio);min-width:2.5rem;text-align:right;">${p.bio_probability.toFixed(2)}</span></div>
+        <div class="cmp-bar-row"><span class="cmp-blbl">Non-geo</span>
+          <div class="cmp-track"><div class="cmp-fill ng" style="width:${p.non_geological*100}%"></div></div>
+          <span style="font-size:.52rem;color:var(--tech);min-width:2.5rem;text-align:right;">${p.non_geological.toFixed(2)}</span></div>
+        <div class="cmp-bar-row"><span class="cmp-blbl">Sync</span>
+          <div class="cmp-track"><div class="cmp-fill odds" style="width:${p.phase_synchrony*100}%"></div></div>
+          <span style="font-size:.52rem;color:var(--stellar);min-width:2.5rem;text-align:right;">${p.phase_synchrony.toFixed(2)}</span></div>
+      </div>
+      <div class="cmp-meta"><span class="cmp-verdict ${vc}">${vl}</span><br>
+        <span class="cmp-ts">${p.dominant_transition||'—'}</span></div>
+    </div>`;}).join('');
+}
+
+function renderRadar(){
+  const canvas=document.getElementById('radarC');
+  const ctx=canvas.getContext('2d');
+  canvas.width=500; canvas.height=320;
+  ctx.clearRect(0,0,500,320);
+  if(!cmpData.length) return;
+
+  const cx=250, cy=165, r=130;
+  const keys=['bio_probability','non_geological','phase_synchrony','consilience'];
+  const labels=['P(bio)','Non-geo','Sincronía','Consiliencia'];
+  const n=keys.length;
+  const colors=['#00c896','#4cc9f0','#ffd166','#ff7b54','#ff4d6d','#7b8fff'];
+
+  // Grid
+  for(let ring=1;ring<=4;ring++){
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const a=-Math.PI/2+(i/n)*Math.PI*2;
+      const rx=cx+(r*ring/4)*Math.cos(a), ry=cy+(r*ring/4)*Math.sin(a);
+      i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
+    }
+    ctx.closePath();ctx.strokeStyle='rgba(26,42,58,.7)';ctx.lineWidth=.5;ctx.stroke();
+  }
+
+  // Axes + labels
+  labels.forEach((lbl,i)=>{
+    const a=-Math.PI/2+(i/n)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));
+    ctx.strokeStyle='rgba(58,90,122,.7)';ctx.lineWidth=.8;ctx.stroke();
+    const lx=cx+(r+18)*Math.cos(a), ly=cy+(r+18)*Math.sin(a);
+    ctx.fillStyle='#3a5a7a';ctx.font='10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(lbl,lx,ly);
+  });
+
+  // Planet data
+  cmpData.slice(0,6).forEach((p,pi)=>{
+    const vals=keys.map(k=>p[k]||0);
+    ctx.beginPath();
+    vals.forEach((v,i)=>{
+      const a=-Math.PI/2+(i/n)*Math.PI*2;
+      const rx=cx+r*v*Math.cos(a), ry=cy+r*v*Math.sin(a);
+      i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
+    });
+    ctx.closePath();
+    ctx.strokeStyle=colors[pi%colors.length];ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=colors[pi%colors.length].replace(')',',0.06)').replace('#','rgba(').replace(/([0-9a-f]{2})/gi,g=>(parseInt(g,16)+',')).replace(/,\)$/,',0.06)');
+    ctx.fill();
+
+    // Label
+    const a=-Math.PI/2;
+    const lx=cx+r*vals[0]*Math.cos(a)-8*pi;
+    ctx.fillStyle=colors[pi%colors.length];ctx.font='bold 9px monospace';
+    ctx.fillText(p.name.split(' ').slice(0,2).join(' '),cx-100+pi*35,310-pi*0);
+  });
+
+  // Legend (simple)
+  cmpData.slice(0,6).forEach((p,pi)=>{
+    ctx.fillStyle=colors[pi%colors.length];ctx.font='9px monospace';ctx.textAlign='left';
+    ctx.fillRect(10,10+pi*16,10,3);
+    ctx.fillText(p.name,26,13+pi*16);
+  });
+}
+
+// =============================================================
+// MEMORY CORAL
+// =============================================================
+async function loadMemStats(){
+  try{
+    const d=await apiGet('/api/memory/status');
+    if(d.online){
+      document.getElementById('msTotal').textContent=d.total??'—';
+      document.getElementById('msAstro').textContent=d.astrobio_entries??'—';
+      document.getElementById('msCoral').textContent=d.coral_entries??'—';
+      document.getElementById('cfgTable').textContent=d.table||'—';
+      document.getElementById('cfgNsField').textContent=d.namespace_field||'—';
+      document.getElementById('pillMem').className='npill live';
+      document.getElementById('srcMem').classList.add('on');
+      document.getElementById('cfgCoralVal').textContent='coral';
+      document.getElementById('cfgAstroVal').textContent='astrobio';
+      loadMemEntries('astrobio');
+    } else {
+      document.getElementById('msTotal').textContent='OFFLINE';
+      document.getElementById('pillMem').className='npill off';
+    }
+  }catch(e){
+    document.getElementById('msTotal').textContent='OFFLINE';
+    document.getElementById('pillMem').className='npill off';
+  }
+}
+
+async function loadMemEntries(ns){
+  document.getElementById('memList').innerHTML='<span class="spin"></span>';
+  try{
+    const d=await apiGet(`/api/memory/list?namespace=${ns}&limit=30`);
+    if(!d.entries.length){
+      document.getElementById('memList').innerHTML='<div style="color:var(--muted);font-size:.58rem;">Sin entradas en el namespace '+ns+'.</div>';
+      return;
+    }
+    document.getElementById('memList').innerHTML=d.entries.map(e=>`
+      <div class="me-item">
+        <div class="me-t">${e.title||e.content?.substring(0,50)||'—'}
+          <span class="me-ns ${ns}">${ns.toUpperCase()}</span></div>
+        <div class="me-m">${(e.content||'').substring(0,120)}…</div>
+      </div>`).join('');
+  }catch(e){
+    document.getElementById('memList').innerHTML=`<div style="color:var(--abio);font-size:.58rem;">Error: ${e.message}</div>`;
+  }
+}
+
+async function searchMem(){
+  const q=document.getElementById('memSearch').value.trim();
+  const ns=document.getElementById('nsSelect').value;
+  if(!q) return loadMemEntries(ns);
+  document.getElementById('memList').innerHTML='<span class="spin"></span>';
+  try{
+    const d=await apiGet(`/api/memory/search?q=${encodeURIComponent(q)}&namespace=${ns}`);
+    if(!d.results.length){
+      document.getElementById('memList').innerHTML='<div style="color:var(--muted);font-size:.58rem;">Sin resultados para "'+q+'".</div>';
+      return;
+    }
+    document.getElementById('memList').innerHTML=d.results.map(e=>`
+      <div class="me-item">
+        <div class="me-t">${e.title||e.content?.substring(0,50)||'—'}
+          <span class="me-ns ${ns}">${ns.toUpperCase()}</span></div>
+        <div class="me-m">${(e.content||'').substring(0,120)}…</div>
+      </div>`).join('');
+  }catch(e){toast('Error búsqueda',true);}
+}
+
+async function saveToMemory(){
+  if(!sel||!analysis){toast('Selecciona un planeta primero',true);return;}
+  document.getElementById('btnSave').disabled=true;
+  try{
+    const d=await fetch(`${API}/api/memory/save/${encodeURIComponent(sel.name)}`,{method:'POST',signal:AbortSignal.timeout(12000)});
+    const r=await d.json();
+    if(r.status==='ok') toast(`✓ ${sel.name} guardado en Memoria Coral (astrobio)`);
+    else if(r.status==='offline') toast('Supabase offline. Configura credenciales.',true);
+    else toast('Error: '+r.error,true);
+  }catch(e){toast('Error: '+e.message,true);}
+  finally{document.getElementById('btnSave').disabled=false;}
+}
+
+async function saveCoral(){
+  const title=document.getElementById('noteTitle').value.trim();
+  const content=document.getElementById('noteContent').value.trim();
+  if(!content){toast('Escribe contenido primero',true);return;}
+  try{
+    const d=await apiPost('/api/memory/save-coral',{title,content,tags:['coral','astrobio_proyecto']});
+    if(d.status==='ok') toast('✓ Nota guardada en namespace coral');
+    else toast('Supabase offline',true);
+    document.getElementById('noteTitle').value='';
+    document.getElementById('noteContent').value='';
+  }catch(e){toast('Error: '+e.message,true);}
+}
+
+// =============================================================
+// TOAST
+// =============================================================
+function toast(msg,err=false){
+  const t=document.createElement('div');
+  t.className='toast'+(err?' err':'');
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(()=>t.remove(),400);},3200);
+}
+
+// =============================================================
+// BOOT
+// =============================================================
+async function boot(){
+  const f=document.getElementById('lf'),m=document.getElementById('lm');
+  const set=(p,t)=>{f.style.width=p+'%';m.textContent=t;};
+
+  set(10,'INICIANDO...');
+  await sleep(180);
+  set(25,'VERIFICANDO API...');
+
+  const apiOk=await checkAPI();
+  document.getElementById('bApi').className='ld-b '+(apiOk?'ok':'fail');
+
+  set(45,'CARGANDO CATÁLOGO...');
+  await loadPlanets();
+  document.getElementById('bNasa').className='ld-b '+(planets.length>0?'ok':'warn');
+
+  set(65,'VERIFICANDO MEMORIA CORAL...');
+  try{
+    const ms=await apiGet('/api/memory/status');
+    document.getElementById('bMem').className='ld-b '+(ms.online?'ok':'warn');
+    if(ms.online) document.getElementById('pillMem').className='npill live';
+  }catch(e){
+    document.getElementById('bMem').className='ld-b warn';
+  }
+
+  set(85,'ACTIVANDO MOTORES...');
+  await sleep(200);
+  document.getElementById('bEng').className='ld-b ok';
+
+  set(100,'SISTEMA LISTO.');
+  await sleep(350);
+  document.getElementById('loader').classList.add('out');
+  setTimeout(()=>{const l=document.getElementById('loader');if(l)l.remove();},600);
+}
+
+window.addEventListener('resize',()=>{
+  const c=document.getElementById('sigC');if(c)c.width=c.offsetWidth;
+});
+document.addEventListener('DOMContentLoaded',boot);
+</script>
+</body>
+</html>
